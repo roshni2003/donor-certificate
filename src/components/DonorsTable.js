@@ -66,6 +66,8 @@ function DonorsTable() {
         Amount: row.Amount || "",
         Amount_in_words: row.Amount_in_words || "",
         PAN: row.PAN || "",
+        Aadhar: row.Aadhar || "",
+
       };
 
       await fetch(API_URL, {
@@ -113,10 +115,13 @@ function DonorsTable() {
     }
   }
 
-
+  const safeValue = (v) => {
+    if (!v) return "N/A";
+    if (typeof v !== "string") return String(v);
+    return v.trim() === "" ? "N/A" : v.trim();
+  };
 
   return (
-    // <Grid maxWidth={"xl"} margin="auto">
     <Box p={2}>
       {/* Header */}
       <Typography
@@ -144,11 +149,7 @@ function DonorsTable() {
       >
         <Table sx={{ borderRadius: "12px", overflow: "hidden" }}>
           <TableHead>
-            <TableRow
-              sx={{
-                background: "#d81b60",
-              }}
-            >
+            <TableRow sx={{ background: "#d81b60" }}>
               {[
                 "Serial No",
                 "Date",
@@ -156,6 +157,7 @@ function DonorsTable() {
                 "Address",
                 "Amount",
                 "PAN",
+                "Aadhar",
                 "Action",
               ].map((head) => (
                 <TableCell
@@ -182,6 +184,7 @@ function DonorsTable() {
             ) : (
               donors.slice(0, visibleCount).map((d, idx) => {
                 const key = `${d.Serial_No}_${d.Date}_${d.Name}`;
+
                 return (
                   <TableRow
                     key={key || idx}
@@ -193,10 +196,13 @@ function DonorsTable() {
                     }}
                   >
                     <TableCell>{d.Serial_No}</TableCell>
+
                     <TableCell>
                       {new Date(d.Date).toLocaleDateString()}
                     </TableCell>
+
                     <TableCell>{d.Name}</TableCell>
+
                     <TableCell
                       sx={{ whiteSpace: "normal", lineHeight: "20px" }}
                       dangerouslySetInnerHTML={{
@@ -205,7 +211,11 @@ function DonorsTable() {
                     />
 
                     <TableCell>{d.Amount || "-"}</TableCell>
-                    <TableCell>{d.PAN || "-"}</TableCell>
+
+                    <TableCell>{safeValue(d.PAN)}</TableCell>
+
+                    <TableCell>{safeValue(d.Aadhar)}</TableCell>
+
 
                     <TableCell>
                       {(() => {
@@ -219,7 +229,9 @@ function DonorsTable() {
                             disabled={processing[key] || alreadyDone}
                             sx={{
                               background: alreadyDone ? "#9e9e9e" : "#7b4adfff",
-                              "&:hover": { background: alreadyDone ? "#9e9e9e" : "#5e35b1" },
+                              "&:hover": {
+                                background: alreadyDone ? "#9e9e9e" : "#5e35b1",
+                              },
                               borderRadius: "10px",
                               px: 2,
                               py: 0.7,
@@ -236,13 +248,13 @@ function DonorsTable() {
                         );
                       })()}
                     </TableCell>
-
                   </TableRow>
                 );
               })
             )}
           </TableBody>
         </Table>
+
         {donors.length > visibleCount && (
           <Box textAlign="center" mt={2}>
             <Button
@@ -255,13 +267,12 @@ function DonorsTable() {
                 borderRadius: "8px",
                 fontWeight: "bold",
               }}
-              onClick={() => setVisibleCount(prev => prev + 10)}
+              onClick={() => setVisibleCount((prev) => prev + 10)}
             >
               Show More
             </Button>
           </Box>
         )}
-
       </Paper>
 
       <Snackbar
