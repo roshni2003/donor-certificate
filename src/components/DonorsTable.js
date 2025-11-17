@@ -24,15 +24,22 @@ function DonorsTable() {
   const pollRef = useRef(null);
   const [visibleCount, setVisibleCount] = useState(10);
 
-  // ---------------------------
-  // FETCH DONORS
-  // ---------------------------
+  // Fetch donors function
+
   async function fetchDonors() {
     try {
       const res = await fetch(API_URL);
       if (!res.ok) throw new Error("Failed to fetch donors");
       const data = await res.json();
-      setDonors(Array.isArray(data) ? data : []);
+
+      const sorted = [...data].sort((a, b) => {
+        const dateA = new Date(a.Date);
+        const dateB = new Date(b.Date);
+        return dateB - dateA; // descending
+      });
+
+      setDonors(sorted);
+
     } catch (err) {
       console.error("Fetch Error:", err);
       setSnack({ severity: "error", message: "Could not fetch donors." });
@@ -45,9 +52,7 @@ function DonorsTable() {
     return () => clearInterval(pollRef.current);
   }, []);
 
-  // ---------------------------
-  // GENERATE PDF
-  // ---------------------------
+  // Generate PDF function
   async function generatePdf(row) {
     const key = `${row.Serial_No}_${row.Date}_${row.Name}`;
     setProcessing((prev) => ({ ...prev, [key]: true }));
@@ -85,26 +90,30 @@ function DonorsTable() {
     }
   }
 
-  // ---------------------------
-  // MARK PROCESSED
-  // ---------------------------
+  // Mark as processed function
+
   async function markAsProcessed(row) {
     try {
       const payload = {
         function: "markAsProcessed",
         serialNo: row.Serial_No,
-        date: row.Date,
         name: row.Name,
+        date: row.Date,
       };
+
       await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        mode: "no-cors",
       });
+
     } catch (err) {
       console.warn("Failed to mark as processed:", err);
     }
   }
+
+
 
   return (
     // <Grid maxWidth={"xl"} margin="auto">
@@ -199,25 +208,35 @@ function DonorsTable() {
                     <TableCell>{d.PAN || "-"}</TableCell>
 
                     <TableCell>
-                      <Button
-                        variant="contained"
-                        onClick={() => generatePdf(d)}
-                        disabled={processing[key]}
-                        sx={{
-                          background: "#7b4adfff",
-                          "&:hover": { background: "#5e35b1" },
-                          borderRadius: "10px",
-                          px: 2,
-                          py: 0.7,
-                        }}
-                      >
-                        {processing[key] ? (
-                          <CircularProgress size={18} color="inherit" />
-                        ) : (
-                          "Generate PDF"
-                        )}
-                      </Button>
+                      {(() => {
+                        const alreadyDone =
+                          d.Processed?.toString().trim().toUpperCase() === "YES";
+
+                        return (
+                          <Button
+                            variant="contained"
+                            onClick={() => generatePdf(d)}
+                            disabled={processing[key] || alreadyDone}
+                            sx={{
+                              background: alreadyDone ? "#9e9e9e" : "#7b4adfff",
+                              "&:hover": { background: alreadyDone ? "#9e9e9e" : "#5e35b1" },
+                              borderRadius: "10px",
+                              px: 2,
+                              py: 0.7,
+                            }}
+                          >
+                            {alreadyDone ? (
+                              "PDF Generated"
+                            ) : processing[key] ? (
+                              <CircularProgress size={18} color="inherit" />
+                            ) : (
+                              "Generate PDF"
+                            )}
+                          </Button>
+                        );
+                      })()}
                     </TableCell>
+
                   </TableRow>
                 );
               })
